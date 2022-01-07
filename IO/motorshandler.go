@@ -2,16 +2,15 @@ package IO
 
 import (
 	"FireFighter/comm"
+	"FireFighter/motors"
 	"fmt"
 	"github.com/sirupsen/logrus"
 )
 
-type MotorDirection string
-
 type MotorData struct {
 	Motor     string
-	Direction MotorDirection
-	Speed     uint8
+	Direction motors.MotorDirection
+	Speed     int
 }
 
 type MotorsHandler struct {
