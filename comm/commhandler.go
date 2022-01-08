@@ -171,6 +171,10 @@ func (h *Handler) WriteMessage(encodedMsg string) (response string, err error) {
 	}
 }
 
+func (h *Handler) Close() error {
+	return h.Port.Close()
+}
+
 func (h *Handler) readln(timeout time.Duration) (string, error) {
 	dataChan := make(chan string)
 	errChan := make(chan error)

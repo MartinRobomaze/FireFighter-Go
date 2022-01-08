@@ -2,14 +2,20 @@ package IO
 
 import (
 	"FireFighter/comm"
-	"FireFighter/motors"
 	"fmt"
 	"github.com/sirupsen/logrus"
 )
 
+type MotorDirection string
+
+const (
+	Forward  MotorDirection = "F"
+	Backward                = "B"
+)
+
 type MotorData struct {
 	Motor     string
-	Direction motors.MotorDirection
+	Direction MotorDirection
 	Speed     int
 }
 
