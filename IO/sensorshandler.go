@@ -20,7 +20,7 @@ type SensorsHandler struct {
 func NewSensorsHandler(commHandler *comm.Handler) *SensorsHandler {
 	return &SensorsHandler{
 		CommHandler:     commHandler,
-		sensorsDataChan: make(chan SensorsData),
+		sensorsDataChan: make(chan SensorsData, 10),
 	}
 }
 
@@ -80,12 +80,19 @@ func (s *SensorsHandler) Update() {
 		}
 	}
 
-	s.sensorsDataChan <- sensorsData
+	select {
+	case s.sensorsDataChan <- sensorsData:
+	default:
+	}
 }
 
 func (s *SensorsHandler) GetData() *SensorsData {
 	select {
 	case data := <-s.sensorsDataChan:
+		for len(s.sensorsDataChan) > 0 {
+			<-s.sensorsDataChan
+		}
+
 		return &data
 	default:
 		return nil

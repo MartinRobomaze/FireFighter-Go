@@ -13,6 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stianeikeland/go-rpio/v4"
 	"image"
+	"log"
 	"time"
 )
 
@@ -42,6 +43,11 @@ func initSensorInterface() (commHandler *comm.Handler, handler *IO.HwHandler, co
 }
 
 func initRPiGPIOServices() (controller *stepper.Controller, fan rpio.Pin) {
+	err := rpio.Open()
+	if err != nil {
+		logrus.WithError(err).Log(logrus.PanicLevel, "ERROR Initializing RPi GPIO")
+	}
+
 	fan = rpio.Pin(fanPin)
 	fan.Output()
 
@@ -87,9 +93,9 @@ func closeServices(commHandler *comm.Handler, cam *lepton.Driver) {
 }
 
 func main() {
-	commHandler, _, _ := initSensorInterface()
+	commHandler, _, motorsController := initSensorInterface()
 
-	_, _ = initRPiGPIOServices()
+	stepperController, _ := initRPiGPIOServices()
 
 	cam, frameChan, fireFinder := initFireFinder()
 
@@ -106,27 +112,28 @@ func main() {
 
 		fireAngleHor, fireAngleVer := fireFinder.FireCoordsToAngles(fireData.FireLocation)
 
-		//if fireAngleHor < -20 {
-		//	motorsController.Left(baseSpeed)
-		//} else if fireAngleHor < 20 {
-		//	motorsController.Slide(fireAngleHor, baseSpeed)
-		//} else {
-		//	motorsController.Right(baseSpeed)
-		//}
-		//
-		//if fireAngleVer < -10 {
-		//	stepperController.Move(stepper.Up, 200, 1000/9*time.Millisecond)
-		//} else if fireAngleVer < -5 {
-		//	stepperController.Move(stepper.Up, 50, 1000/9*time.Millisecond)
-		//} else if 5 < fireAngleVer && fireAngleVer < 10 {
-		//	stepperController.Move(stepper.Down, 50, 1000/9*time.Millisecond)
-		//} else if fireAngleVer > 10 {
-		//	stepperController.Move(stepper.Down, 200, 1000/9*time.Millisecond)
-		//}
+		if fireAngleHor < -20 {
+			motorsController.Left(baseSpeed)
+		} else if fireAngleHor < 20 {
+			motorsController.Slide(fireAngleHor, baseSpeed)
+			log.Println("mopslik")
+		} else {
+			motorsController.Right(baseSpeed)
+		}
+
+		if fireAngleVer < -10 {
+			stepperController.Move(stepper.Up, 200, 1000/9*time.Millisecond)
+		} else if fireAngleVer < -5 {
+			stepperController.Move(stepper.Up, 50, 1000/9*time.Millisecond)
+		} else if 5 < fireAngleVer && fireAngleVer < 10 {
+			stepperController.Move(stepper.Down, 50, 1000/9*time.Millisecond)
+		} else if fireAngleVer > 10 {
+			stepperController.Move(stepper.Down, 200, 1000/9*time.Millisecond)
+		}
 
 		logrus.WithFields(logrus.Fields{
 			"fire temperature":      fireData.FireTemperature,
-			"fire location":         fmt.Sprintf("%d\t%d", fireData.FireLocation.X, fireData.FireLocation.Y),
+			"fire location":         fmt.Sprintf("%d \t %d", fireData.FireLocation.X, fireData.FireLocation.Y),
 			"fire angle horizontal": fireAngleHor,
 			"fire angle vertical":   fireAngleVer,
 		}).Log(logrus.InfoLevel, "FIRE")

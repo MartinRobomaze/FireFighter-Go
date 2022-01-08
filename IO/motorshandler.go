@@ -84,14 +84,13 @@ func (m *MotorsHandler) Update() {
 				return
 			}
 		}
+	default:
+		return
 	}
 }
 
 func (m *MotorsHandler) SetMotors(motors []MotorData) {
-	select {
-	case m.motorsDataChan <- motors:
-	default:
-	}
+	m.motorsDataChan <- motors
 }
 
 func arrEqual(arr1 []interface{}, arr2 []interface{}) bool {

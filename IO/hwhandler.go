@@ -1,6 +1,8 @@
 package IO
 
-import "FireFighter/comm"
+import (
+	"FireFighter/comm"
+)
 
 type HwHandler struct {
 	SensorsHandler  *SensorsHandler

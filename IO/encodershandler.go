@@ -16,7 +16,7 @@ type EncodersHandler struct {
 func NewEncodersHandler(commHandler *comm.Handler) *EncodersHandler {
 	return &EncodersHandler{
 		CommHandler:      commHandler,
-		encodersDataChan: make(chan []float64),
+		encodersDataChan: make(chan []float64, 10),
 		encoderResetChan: make(chan bool),
 	}
 }
@@ -98,7 +98,10 @@ func (e *EncodersHandler) Update() {
 
 		data, ok := msgResp.Data.([]float64)
 		if ok {
-			e.encodersDataChan <- data
+			select {
+			case e.encodersDataChan <- data:
+			default:
+			}
 		} else {
 			logrus.WithField("response", fmt.Sprintf("%+v", msgResp)).
 				Log(logrus.ErrorLevel, "error casting encoders data")
@@ -111,6 +114,10 @@ func (e *EncodersHandler) Update() {
 func (e *EncodersHandler) GetData() []float64 {
 	select {
 	case data := <-e.encodersDataChan:
+		for len(e.encodersDataChan) > 0 {
+			<-e.encodersDataChan
+		}
+
 		return data
 	default:
 		return nil

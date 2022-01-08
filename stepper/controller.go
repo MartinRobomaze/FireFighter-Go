@@ -35,6 +35,8 @@ func New(stepPin int, dirPin int) *Controller {
 	c.StepPin.Mode(rpio.Output)
 	c.DirPin.Mode(rpio.Output)
 
+	go c.update()
+
 	return c
 }
 
@@ -42,10 +44,13 @@ func (c *Controller) Move(direction Direction, steps int64, duration time.Durati
 	data := StepsData{
 		Direction: direction,
 		Steps:     steps,
-		SleepTime: time.Duration(int64(duration)/steps) / 2,
+		SleepTime: time.Duration(int64(duration)/steps) / 4,
 	}
 
-	c.StepsChan <- data
+	select {
+	case c.StepsChan <- data:
+	default:
+	}
 }
 
 func (c *Controller) update() {
