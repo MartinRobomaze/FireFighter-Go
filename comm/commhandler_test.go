@@ -3,7 +3,6 @@ package comm
 import (
 	"fmt"
 	"log"
-	"strings"
 	"testing"
 )
 
@@ -20,7 +19,7 @@ func TestPug(t *testing.T) {
 	}()
 
 	for {
-		msgEncoded, err := h.EncodeMessage(Message{
+		msgEncoded := h.EncodeMessage(Message{
 			MsgType: Sensors,
 			Data:    nil,
 		})
@@ -33,12 +32,13 @@ func TestPug(t *testing.T) {
 			log.Println(err.Error())
 		}
 
-		for _, dataRaw := range strings.Split(respRaw, "\t") {
-			resp, err := h.DecodeMessage(dataRaw)
-			if err != nil {
-				log.Println(err)
-			}
-			log.Printf("%+v", resp)
+		log.Println(len(respRaw))
+
+		msg, err := h.DecodeMessage(respRaw)
+		if err != nil {
+			log.Println(err.Error())
+		} else {
+			log.Println(msg.Data)
 		}
 	}
 }

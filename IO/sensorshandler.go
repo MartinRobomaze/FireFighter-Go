@@ -3,12 +3,11 @@ package IO
 import (
 	"FireFighter/comm"
 	"github.com/sirupsen/logrus"
-	"strings"
 )
 
 type SensorsData struct {
-	LightSensors    []int64
-	DistanceSensors []int64
+	LightSensors    []uint8
+	DistanceSensors []uint16
 	IMU             float64
 }
 
@@ -30,11 +29,7 @@ func (s *SensorsHandler) Update() {
 		Data:    nil,
 	}
 
-	sensorsMessageEnc, err := s.CommHandler.EncodeMessage(sensorsMessage)
-	if err != nil {
-		logrus.WithError(err).Log(logrus.ErrorLevel, "error encoding sensors message")
-		return
-	}
+	sensorsMessageEnc := s.CommHandler.EncodeMessage(sensorsMessage)
 
 	respRaw, err := s.CommHandler.WriteMessage(sensorsMessageEnc)
 	if err != nil {
@@ -46,38 +41,10 @@ func (s *SensorsHandler) Update() {
 
 	var sensorsData SensorsData
 
-	for _, dataRaw := range strings.Split(respRaw, "\t") {
-		resp, err := s.CommHandler.DecodeMessage(dataRaw)
-		if err != nil {
-			logrus.
-				WithError(err).
-				WithField("rawMessage", dataRaw).
-				Log(logrus.ErrorLevel, "error decoding sensors message")
-			return
-		}
+	sensorsData.LightSensors = make([]uint8, 8)
 
-		switch resp.MsgType {
-		case comm.LightSensors:
-			val, ok := resp.Data.([]int64)
-			if ok {
-				sensorsData.LightSensors = val
-			}
-		case comm.DistanceSensors:
-			val, ok := resp.Data.([]int64)
-			if ok {
-				sensorsData.DistanceSensors = val
-			}
-		case comm.IMUSensor:
-			val, ok := resp.Data.(float64)
-			if ok {
-				sensorsData.IMU = val
-			}
-		default:
-			logrus.
-				WithField("MessageType", resp.MsgType).
-				Log(logrus.ErrorLevel, "invalid sensors message type")
-			return
-		}
+	for i := 0; i < 8; i++ {
+		sensorsData.LightSensors[i] = respRaw[i]
 	}
 
 	select {

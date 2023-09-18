@@ -1,28 +1,21 @@
 package comm
 
-type MessageType string
+type MessageType byte
 
 const (
-	Sensors         MessageType = "A"
-	LightSensors                = "L"
-	DistanceSensors             = "D"
-	IMUSensor                   = "I"
-	Encoders                    = "N"
-	Motors                      = "M"
+	Sensors       MessageType = 'S'
+	Encoders                  = 'E'
+	EncodersReset             = 'R'
+	Motors                    = 'M'
+	BrakeMotors               = 'B'
 )
 
 const (
-	msgStart     string = "<"
-	msgEnd              = ">"
-	dataStart           = "{"
-	dataEnd             = "}"
-	commStart           = "~"
-	valSeparator        = ","
+	msgStart byte = '<'
+	msgEnd        = '>'
 )
-
-const EncodersResetCommand = "R"
 
 type Message struct {
 	MsgType MessageType
-	Data    interface{}
+	Data    []byte
 }

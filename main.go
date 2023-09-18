@@ -9,7 +9,6 @@ import (
 	"FireFighter/stepper"
 	"fmt"
 	gouvc "github.com/MartinRobomaze/go-uvc"
-	"github.com/MartinRobomaze/gocv"
 	"github.com/sirupsen/logrus"
 	"github.com/stianeikeland/go-rpio/v4"
 	"image"
@@ -93,7 +92,7 @@ func closeServices(commHandler *comm.Handler, cam *lepton.Driver) {
 }
 
 func main() {
-	commHandler, _, motorsController := initSensorInterface()
+	commHandler, ioHandler, motorsController := initSensorInterface()
 
 	stepperController, _ := initRPiGPIOServices()
 
@@ -102,6 +101,7 @@ func main() {
 	defer closeServices(commHandler, cam)
 
 	for {
+		sensorsData := ioHandler.SensorsHandler.GetData()
 		thermalDataRaw := <-frameChan
 		thermalData := gocv.NewMatFromInt16Arr(120, 160, gocv.MatTypeCV16U, thermalDataRaw.Data)
 

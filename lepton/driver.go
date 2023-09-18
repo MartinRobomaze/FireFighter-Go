@@ -46,7 +46,7 @@ func (d *Driver) StartStreaming() (<-chan *gouvc.Frame, error) {
 	frameDesc := formatDesc.FrameDescriptors()
 	log.Println(formatDesc)
 	stream, err := d.DeviceHandle.GetStream(
-		gouvc.FRAME_FORMAT_Y16,
+		gouvc.FRAME_FORMAT_UNCOMPRESSED,
 		int(frameDesc[0].Width),
 		int(frameDesc[0].Height),
 		int(10000000/frameDesc[0].DefaultFrameInterval),
