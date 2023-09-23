@@ -25,11 +25,13 @@ func TestPug(t *testing.T) {
 		})
 		if err != nil {
 			log.Println(err.Error())
+			continue
 		}
 
 		respRaw, err := h.WriteMessage(msgEncoded)
 		if err != nil {
 			log.Println(err.Error())
+			continue
 		}
 
 		log.Println(len(respRaw))
@@ -38,7 +40,7 @@ func TestPug(t *testing.T) {
 		if err != nil {
 			log.Println(err.Error())
 		} else {
-			log.Println(msg.Data)
+			log.Println(len(msg.Data))
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"FireFighter/comm"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"sort"
 )
 
 type MotorDirection string
@@ -34,55 +35,57 @@ func NewMotorsHandler(commHandler *comm.Handler) *MotorsHandler {
 func (m *MotorsHandler) Update() {
 	select {
 	case motorsData := <-m.motorsDataChan:
+		sort.Slice(motorsData, func(i, j int) bool {
+			return motorsData[i].Motor < motorsData[j].Motor
+		})
+
+		// 2 bytes per 1 motor.
+		dataEnc := make([]byte, 8)
+		var dataEncIdx int
 		for _, motor := range motorsData {
-			data := []interface{}{motor.Motor, motor.Direction, motor.Speed}
-
-			msg := comm.Message{
-				MsgType: comm.Motors,
-				Data:    data,
+			var motorSpeed int16
+			if motor.Direction == Forward {
+				motorSpeed = int16(motor.Speed)
+			} else if motor.Direction == Backward {
+				motorSpeed = int16(-motor.Speed)
 			}
 
-			encodedMsg, err := m.CommHandler.EncodeMessage(msg)
-			if err != nil {
-				logrus.WithError(err).
-					WithField("message", fmt.Sprintf("%+v", msg)).
-					Log(logrus.ErrorLevel, "error encoding motors message")
+			dataEnc[dataEncIdx] = byte((motorSpeed >> 8) & 0xFF)
+			dataEncIdx++
+			dataEnc[dataEncIdx] = byte(motorSpeed & 0xFF)
+			dataEncIdx++
+		}
 
-				return
-			}
+		msg := comm.Message{
+			MsgType: comm.Motors,
+			Data:    dataEnc,
+		}
 
-			response, err := m.CommHandler.WriteMessage(encodedMsg)
-			if err != nil {
-				logrus.WithError(err).
-					Log(logrus.ErrorLevel, "error sending motors message")
+		encodedMsg := m.CommHandler.EncodeMessage(msg)
 
-				return
-			}
+		response, err := m.CommHandler.WriteMessage(encodedMsg)
+		if err != nil {
+			logrus.WithError(err).
+				Log(logrus.ErrorLevel, "error sending motors message")
 
-			msgResp, err := m.CommHandler.DecodeMessage(response)
-			if err != nil {
-				logrus.WithError(err).
-					WithField("message", response).
-					Log(logrus.ErrorLevel, "error decoding motors message")
+			return
+		}
 
-				return
-			}
+		msgResp, err := m.CommHandler.DecodeMessage(response)
+		if err != nil {
+			logrus.WithError(err).
+				WithField("message", response).
+				Log(logrus.ErrorLevel, "error decoding motors message")
 
-			respData, ok := msgResp.Data.([]interface{})
-			if !ok {
-				logrus.WithError(err).
-					WithField("message", response).
-					Log(logrus.ErrorLevel, "error casting motors message")
-				return
-			}
+			return
+		}
 
-			if !arrEqual(respData, data) {
-				logrus.WithField("request", fmt.Sprintf("%+v", msg)).
-					WithField("response", fmt.Sprintf("%+v", *msgResp)).
-					Log(logrus.ErrorLevel, "invalid motors message")
+		if msgResp.MsgType != comm.Motors {
+			logrus.WithField("request", fmt.Sprintf("%+v", msg)).
+				WithField("response", fmt.Sprintf("%+v", *msgResp)).
+				Log(logrus.ErrorLevel, "invalid motors message")
 
-				return
-			}
+			return
 		}
 	default:
 		return
@@ -91,18 +94,4 @@ func (m *MotorsHandler) Update() {
 
 func (m *MotorsHandler) SetMotors(motors []MotorData) {
 	m.motorsDataChan <- motors
-}
-
-func arrEqual(arr1 []interface{}, arr2 []interface{}) bool {
-	if len(arr1) != len(arr2) {
-		return false
-	}
-
-	for i := range arr1 {
-		if fmt.Sprint(arr1[i]) != fmt.Sprint(arr2[i]) {
-			return false
-		}
-	}
-
-	return true
 }

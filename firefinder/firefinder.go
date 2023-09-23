@@ -1,6 +1,7 @@
 package firefinder
 
 import (
+	"FireFighter/lepton"
 	"github.com/MartinRobomaze/gocv"
 	"image"
 )
@@ -32,7 +33,7 @@ func New(
 		Resolution:              resolution,
 		ViewingAngleHorizontal:  viewAngleHor,
 		ViewingAngleVertical:    viewAngleVer,
-		tempThresholdRaw:        CelsiusToRaw(tempThreshold),
+		tempThresholdRaw:        lepton.CelsiusToRaw(tempThreshold),
 		prevFireBBox:            image.Rect(1, 1, 1, 1),
 		dilationKernel:          gocv.Ones(DilationKernelSize.Y, DilationKernelSize.X, gocv.MatTypeCV8U),
 	}
@@ -73,7 +74,7 @@ func (f *FireFinder) FindFire(data gocv.Mat) (firePresent bool, fireData *FireDa
 
 		if whRatio < f.MaxFireWidthHeightRatio {
 			return true, &FireData{
-				FireTemperature: RawToCelsius(int(maxTemp)),
+				FireTemperature: lepton.RawToCelsius(int(maxTemp)),
 				FireLocation:    maxTempLoc,
 			}
 		}
@@ -90,12 +91,4 @@ func (f *FireFinder) FireCoordsToAngles(fireCoords image.Point) (angleHor float6
 		(float64(fireCoords.Y) / float64(f.Resolution[1]) * f.ViewingAngleVertical)
 
 	return
-}
-
-func CelsiusToRaw(tempC float64) int {
-	return int(tempC*100 + 27315)
-}
-
-func RawToCelsius(tempRaw int) float64 {
-	return float64(tempRaw-27315) / 100
 }

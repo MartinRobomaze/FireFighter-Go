@@ -49,7 +49,7 @@ func (h *Handler) DecodeMessage(encodedMsg []byte) (msg *Message, err error) {
 
 	msg = &Message{
 		MsgType: MessageType(encodedMsg[1]),
-		Data:    encodedMsg[2 : len(encodedMsg)-3],
+		Data:    encodedMsg[2 : len(encodedMsg)-2],
 	}
 
 	return msg, nil
@@ -80,11 +80,15 @@ func (h *Handler) WriteMessage(encodedMsg []byte) (response []byte, err error) {
 		return nil, errors.Wrap(err, "error reading response")
 	}
 
-	return response[1:], nil
+	return response, nil
 }
 
 func (h *Handler) Close() error {
 	return h.Port.Close()
+}
+
+func (h *Handler) flush() {
+	h.Port.Drain()
 }
 
 func (h *Handler) readln(timeout time.Duration) ([]byte, error) {

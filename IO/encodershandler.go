@@ -4,7 +4,6 @@ import (
 	"FireFighter/comm"
 	"fmt"
 	"github.com/sirupsen/logrus"
-	"reflect"
 )
 
 type EncodersHandler struct {
@@ -25,18 +24,11 @@ func (e *EncodersHandler) Update() {
 	select {
 	case <-e.encoderResetChan:
 		msg := comm.Message{
-			MsgType: comm.Encoders,
-			Data:    comm.EncodersResetCommand,
+			MsgType: comm.EncodersReset,
+			Data:    nil,
 		}
 
-		msgEncoded, err := e.CommHandler.EncodeMessage(msg)
-		if err != nil {
-			logrus.WithError(err).
-				WithField("message", fmt.Sprintf("%+v", msg)).
-				Log(logrus.ErrorLevel, "error encoding encoders message")
-
-			return
-		}
+		msgEncoded := e.CommHandler.EncodeMessage(msg)
 
 		respRaw, err := e.CommHandler.WriteMessage(msgEncoded)
 		if err != nil {
@@ -56,7 +48,7 @@ func (e *EncodersHandler) Update() {
 			return
 		}
 
-		if !reflect.DeepEqual(msgEncoded, msg) {
+		if msgResp.MsgType != comm.EncodersReset {
 			logrus.WithField("request", fmt.Sprintf("%+v", msg)).
 				WithField("response", fmt.Sprintf("%+v", msgResp)).
 				Log(logrus.ErrorLevel, "invalid encoders message")
@@ -69,14 +61,7 @@ func (e *EncodersHandler) Update() {
 			Data:    nil,
 		}
 
-		msgEncoded, err := e.CommHandler.EncodeMessage(msg)
-		if err != nil {
-			logrus.WithError(err).
-				WithField("message", fmt.Sprintf("%+v", msg)).
-				Log(logrus.ErrorLevel, "error encoding encoders message")
-
-			return
-		}
+		msgEncoded := e.CommHandler.EncodeMessage(msg)
 
 		respRaw, err := e.CommHandler.WriteMessage(msgEncoded)
 		if err != nil {
@@ -96,17 +81,23 @@ func (e *EncodersHandler) Update() {
 			return
 		}
 
-		data, ok := msgResp.Data.([]float64)
-		if ok {
-			select {
-			case e.encodersDataChan <- data:
-			default:
-			}
-		} else {
-			logrus.WithField("response", fmt.Sprintf("%+v", msgResp)).
-				Log(logrus.ErrorLevel, "error casting encoders data")
+		encodersData := make([]float64, 4)
+		var respRawIdx int
 
-			return
+		for i := 0; i < 4; i++ {
+			var encoderDataDeg int32
+			// IMU data is encoded in 4 byts (32 bits)
+			for j := 3; j >= 0; j-- {
+				encoderDataDeg = encoderDataDeg | (int32(msgResp.Data[respRawIdx]) << (j * 8))
+				respRawIdx++
+			}
+
+			encodersData[i] = float64(encoderDataDeg) / 360
+		}
+
+		select {
+		case e.encodersDataChan <- encodersData:
+		default:
 		}
 	}
 }
